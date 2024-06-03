@@ -12,7 +12,7 @@ class MakeLivewire extends MakeCommand
 {
     use SliceDefinitions;
 
-    protected $signature = 'make:livewire {name} {--force} {--inline} {--test} {--pest} {--stub=}';
+    protected $signature = 'make:livewire {name} {--force} {--inline} {--test} {--pest} {--slice=} {--stub=}';
 
     public function handle()
     {
