@@ -39,7 +39,7 @@ class LivewireSliceServiceProvider extends ServiceProvider
 
     protected function registerConfig()
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/laravel-slice.php', 'laravel-slice');
+        $this->mergeConfigFrom(__DIR__ .'/../config/livewire-slice.php', 'livewire-slice');
     }
 
     protected function publishesConfig()
@@ -47,7 +47,7 @@ class LivewireSliceServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole())
         {
             $this->publishes([
-                __DIR__.'/../config/laravel-slice.php' => config_path('laravel-slice.php'),
+                __DIR__ .'/../config/livewire-slice.php' => config_path('livewire-slice.php'),
             ], 'config');
 
         }
