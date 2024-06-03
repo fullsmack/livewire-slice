@@ -2,5 +2,5 @@
 
 return [
     'namespace' => 'livewire',
-    'view-folder' => 'views.livewire',
+    'view-folder' => 'livewire',
 ];
