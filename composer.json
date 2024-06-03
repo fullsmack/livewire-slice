@@ -1,0 +1,35 @@
+{
+  "name": "fullsmack/livewire-slice",
+  "description": "Registration of Livewire components for Laravel Slice",
+  "homepage": "https://github.com/fullsmack/livewire-slice",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "nicolaibaaring"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "laravel/framework": "^10.0",
+    "livewire/livewire": "^3.0",
+    "fullsmack/laravel-slice": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "FullSmack\\LivewireSlice\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "FullSmack\\LivewireSlice\\LivewireSliceServiceProvider"
+      ]
+    }
+  }
+}
