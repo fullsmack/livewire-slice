@@ -39,6 +39,11 @@ class LivewireComponents implements Feature
 
         $filesystem = app(Filesystem::class);
 
+        if(!$filesystem->exists($directory))
+        {
+            return;
+        }
+
         Collection::make($filesystem->allFiles($directory))
             ->map(function (SplFileInfo $file) use ($namespace): string {
                 return (string) Str::of($namespace)
