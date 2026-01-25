@@ -15,55 +15,116 @@ class ComponentParserUsingCustomLocation extends ComponentParser
 
         $parts = Str::of($namespace)->explode('\\');
 
-        $sliceRootFolder = Str::of($parts[0])
-            ->replace(Str::studly($config['namespace']), $config['folder']);
+        $sliceRootFolder = $config['folder'];
 
-        $sliceName = Str::kebab($parts[1]);
+        $livewireConfig = config('livewire-slice.namespace', 'livewire'); // Default to 'livewire' if not set
 
-        $livewireFolder = Collection::make($parts)->skip(2)->implode('/');
+        $livewireNamespaceParts = Str::of($livewireConfig)
+            ->explode('.')
+            ->map(Str::studly(...));
 
-        $path = base_path("{$sliceRootFolder}/{$sliceName}/src/{$livewireFolder}");
+        // Find where the livewire namespace starts in the full namespace
+        $livewireStartIndex = null;
+        for ($i = 0; $i < $parts->count(); $i++) {
+            $matches = true;
+            foreach ($livewireNamespaceParts as $j => $part) {
+                if (!isset($parts[$i + $j]) || $parts[$i + $j] !== $part) {
+                    $matches = false;
+                    break;
+                }
+            }
+            if ($matches) {
+                $livewireStartIndex = $i;
+                break;
+            }
+        }
 
-        return $path;
+        if ($livewireStartIndex === null) {
+            throw new \RuntimeException("Could not find livewire namespace parts in: {$namespace}");
+        }
+
+        // Extract the slice path parts (everything between root namespace and livewire namespace)
+        $sliceParts = Collection::make($parts)
+            ->skip(1) // Skip root namespace (Slice)
+            ->take($livewireStartIndex - 1) // Take until we hit livewire namespace
+            ->map(Str::kebab(...));
+
+        $slicePath = $sliceParts->implode('/');
+
+        $livewireFolderPath = $livewireNamespaceParts->implode('/');
+
+        return base_path("{$sliceRootFolder}/{$slicePath}/src/{$livewireFolderPath}");
     }
 
     public static function generateTestPathFromNamespace($namespace)
     {
         $rootFolder = config('laravel-slice.root.folder');
 
-        $testNamespace = config('laravel-slice.test.namespace');
-
         $parts = Str::of($namespace)->explode('\\');
 
-        $sliceRootFolder = Str::of($parts[0])
-            ->replace(Str::studly($testNamespace), $rootFolder);
+        // Get livewire namespace from config and convert to namespace parts
+        $livewireConfig = config('livewire-slice.namespace', 'livewire'); // Default to 'livewire' if not set
+        $livewireNamespaceParts = Str::of($livewireConfig)
+            ->explode('.')
+            ->map(Str::studly(...));
 
-        $sliceName = Str::kebab($parts[1]);
+        // Find where the livewire namespace starts
+        $livewireStartIndex = null;
+        for ($i = 0; $i < $parts->count(); $i++) {
+            $matches = true;
+            foreach ($livewireNamespaceParts as $j => $part) {
+                if (!isset($parts[$i + $j]) || $parts[$i + $j] !== $part) {
+                    $matches = false;
+                    break;
+                }
+            }
+            if ($matches) {
+                $livewireStartIndex = $i;
+                break;
+            }
+        }
 
-        return base_path("{$sliceRootFolder}/{$sliceName}/tests");
+        if ($livewireStartIndex === null) {
+            throw new \RuntimeException("Could not find livewire namespace parts in: {$namespace}");
+        }
+
+        // Extract the slice path parts (everything between root namespace and livewire namespace)
+        $sliceParts = Collection::make($parts)
+            ->skip(1) // Skip root namespace
+            ->take($livewireStartIndex - 1) // Take until we hit livewire namespace
+            ->map(Str::kebab(...)); // Convert to kebab case
+
+        $slicePath = $sliceParts->implode('/');
+
+        return base_path("{$rootFolder}/{$slicePath}/tests");
     }
 
     public function viewName()
     {
         $sliceRootFolder = config('laravel-slice.root.folder');
+        $viewFolder = config('livewire-slice.view-folder');
 
-        $sliceName = Str::of($this->baseViewPath)
-            ->before('/resources/views')
-            ->replace("{$sliceRootFolder}/", '');
+        // Extract slice name from the base view path
+        // Find the slice root folder in the path and extract everything between it and /resources/views
+        $pathParts = Str::of($this->baseViewPath)->replace('\\', '/');
 
-        return $sliceName .'::'. Collection::make()
-            ->when(
-                config('livewire.view_path') !== resource_path(),
-                function ($collection) {
-                    return $collection->concat(
-                        Str::of($this->baseViewPath)
-                            ->after('/resources/views')->explode('/')
-                    );
-                }
-            )
-            ->filter()
-            ->concat($this->directories)
-            ->map([Str::class, 'kebab'])
+        // Find the position of the slice root folder
+        $sliceRootPos = $pathParts->position("/{$sliceRootFolder}/");
+
+        if ($sliceRootPos === false) {
+            // Fallback: just use the path as-is
+            $sliceName = $pathParts->before('/resources/views')->afterLast('/');
+        } else {
+            // Extract everything between /{sliceRootFolder}/ and /resources/views
+            $sliceName = $pathParts
+                ->substr($sliceRootPos + strlen("/{$sliceRootFolder}/"))
+                ->before('/resources/views');
+        }
+
+        // Build the component path WITH the livewire folder prefix (for view() calls)
+        // This creates: 'blog::livewire.create-blog'
+        return $sliceName . '::' . $viewFolder . '.' . Collection::make($this->directories)
+            ->map(Str::kebab(...))
             ->push($this->component)
             ->implode('.');
     }

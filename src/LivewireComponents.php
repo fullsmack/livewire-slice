@@ -3,12 +3,11 @@ declare(strict_types=1);
 
 namespace FullSmack\LivewireSlice;
 
+use ReflectionClass;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
 use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Finder\SplFileInfo;
-use ReflectionClass;
 use Livewire\Component;
 use Livewire\Livewire;
 
@@ -22,7 +21,9 @@ class LivewireComponents implements Feature
     public function register(Slice $slice): void
     {
         $moduleSourcePath = $slice->basePath();
+
         $moduleName = $slice->name();
+
         $livewireNamespace = Str::of($this->componentNamespace)
             ->explode('.')
             ->map(fn($string) => ucfirst($string))
@@ -30,10 +31,12 @@ class LivewireComponents implements Feature
 
         $namespace = $slice->baseNamespace($livewireNamespace);
 
-        $livewireNestedSourcePath ??= (fn(): Stringable => Str::of($livewireNamespace)
-            // ->lower()
-            ->after($moduleName.'\\')
-            ->replace('\\', '/'))();
+        $livewirePath = Str::of($this->componentNamespace)
+            ->explode('.')
+            ->map(Str::studly(...))
+            ->implode('/');
+
+        $livewireNestedSourcePath = 'src' .DIRECTORY_SEPARATOR. $livewirePath;
 
         $directory = $moduleSourcePath .DIRECTORY_SEPARATOR. $livewireNestedSourcePath;
 

@@ -27,21 +27,33 @@ class MakeLivewire extends MakeCommand
 
         $config = config('livewire-slice');
 
-        $slicePascalName = Str::studly($this->sliceName);
+        // SliceDefinitions provides:
+        // - $sliceRootNamespace: The namespace path (e.g., 'Slice' for 'blog', 'Slice\Api' for 'api/posts')
+        // - $sliceName: The slice name (e.g., 'blog', 'posts')
+        // We need to build the full namespace: Slice\Blog\Livewire or Slice\Api\Posts\Livewire
+        $sliceNamespace = Str::studly($this->sliceName);
+        $fullSliceNamespace = $this->sliceRootNamespace === 'Slice'
+            ? "Slice\\{$sliceNamespace}"
+            : "{$this->sliceRootNamespace}\\{$sliceNamespace}";
 
         $namespace = Str::of($config['namespace'])
             ->explode('.')
-            ->map(fn(string $string) => Str::studly($string))
+            ->map(static fn (string $string): string => Str::studly($string))
             ->implode('\\');
 
         $viewFolder = Str::of($config['view-folder'])
             ->explode('.')
             ->implode('/');
 
-        config(['livewire.class_namespace' => "{$this->sliceRootNamespace}\\{$slicePascalName}\\{$namespace}"]);
-        config(['livewire.view_path' => "{$this->sliceRootFolder}/{$this->sliceName}/resources/views/{$viewFolder}"]);
+        config(['livewire.class_namespace' => "{$fullSliceNamespace}\\{$namespace}"]);
+        config(['livewire.view_path' => "{$this->slicePath}/resources/views/{$viewFolder}"]);
 
         $this->handleWithCustomLocation();
+    }
+
+    private function createInSlice(): bool
+    {
+        return $this->option('slice') !== null;
     }
 
     public function handleWithCustomLocation()
@@ -53,14 +65,16 @@ class MakeLivewire extends MakeCommand
             $this->option('stub')
         );
 
-        if (!$this->isClassNameValid($name = $this->parser->className())) {
+        if (!$this->isClassNameValid($name = $this->parser->className()))
+        {
             $this->line("<options=bold,reverse;fg=red> WHOOPS! </> 😳 \n");
             $this->line("<fg=red;options=bold>Class is invalid:</> {$name}");
 
             return;
         }
 
-        if ($this->isReservedClassName($name)) {
+        if ($this->isReservedClassName($name))
+        {
             $this->line("<options=bold,reverse;fg=red> WHOOPS! </> 😳 \n");
             $this->line("<fg=red;options=bold>Class is reserved:</> {$name}");
 
@@ -77,23 +91,28 @@ class MakeLivewire extends MakeCommand
         $class = $this->createClass($force, $inline);
         $view = $this->createView($force, $inline);
 
-        if ($test) {
+        if ($test)
+        {
             $test = $this->createTest($force, $testType);
         }
 
-        if($class || $view) {
+        if($class || $view)
+        {
             $this->line("<options=bold,reverse;fg=green> COMPONENT CREATED </> 🤙\n");
             $class && $this->line("<options=bold;fg=green>CLASS:</> {$this->parser->relativeClassPath()}");
 
-            if (! $inline) {
+            if (! $inline)
+            {
                 $view && $this->line("<options=bold;fg=green>VIEW:</>  {$this->parser->relativeViewPath()}");
             }
 
-            if ($test) {
+            if ($test)
+            {
                 $test && $this->line("<options=bold;fg=green>TEST:</>  {$this->parser->relativeTestPath()}");
             }
 
-            if ($showWelcomeMessage && ! app()->runningUnitTests()) {
+            if ($showWelcomeMessage && ! app()->runningUnitTests())
+            {
                 $this->writeWelcomeMessage();
             }
         }
@@ -101,11 +120,18 @@ class MakeLivewire extends MakeCommand
 
     public function isFirstTimeMakingAComponent()
     {
+        if (!$this->createInSlice()) {
+            return parent::isFirstTimeMakingAComponent();
+        }
+
         $livewireFolder = config('livewire-slice.namespace');
 
-        $livewireFolder = Str::of($livewireFolder)->replace('.', '/');
+        $livewireFolder = Str::of($livewireFolder)
+            ->explode('.')
+            ->map(Str::studly(...))
+            ->implode('/');
 
-        $path = base_path("{$this->sliceRootFolder}/{$this->sliceName}/src/{$livewireFolder}");
+        $path = "{$this->slicePath}/src/{$livewireFolder}";
 
         return ! File::isDirectory($path);
     }
