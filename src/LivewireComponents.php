@@ -8,8 +8,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Finder\SplFileInfo;
-use Livewire\Component;
 use Livewire\Livewire;
+use Livewire\Component;
 
 use FullSmack\LaravelSlice\Slice;
 use FullSmack\LaravelSlice\Feature;
@@ -20,9 +20,9 @@ class LivewireComponents implements Feature
 
     public function register(Slice $slice): void
     {
-        $moduleSourcePath = $slice->basePath();
+        $sliceSourcePath = $slice->basePath();
 
-        $moduleName = $slice->name();
+        $sliceName = $slice->name();
 
         $livewireNamespace = Str::of($this->componentNamespace)
             ->explode('.')
@@ -38,7 +38,7 @@ class LivewireComponents implements Feature
 
         $livewireNestedSourcePath = 'src' .DIRECTORY_SEPARATOR. $livewirePath;
 
-        $directory = $moduleSourcePath .DIRECTORY_SEPARATOR. $livewireNestedSourcePath;
+        $directory = $sliceSourcePath .DIRECTORY_SEPARATOR. $livewireNestedSourcePath;
 
         $filesystem = app(Filesystem::class);
 
@@ -54,10 +54,10 @@ class LivewireComponents implements Feature
                     ->replace(['/', '.php'], ['\\', '']);
             })
             ->filter(fn (string $class): bool => (
-                is_subclass_of($class, Component::class) &&
-                (! (new ReflectionClass($class))->isAbstract()))
-            )
-            ->each(function (string $class) use ($namespace, $moduleName): void {
+                is_subclass_of($class, Component::class)
+                && (! (new ReflectionClass($class))->isAbstract())
+            ))
+            ->each(function (string $class) use ($namespace, $sliceName): void {
                 $alias = Str::of($class)
                     ->after($namespace . '\\')
                     ->replace(['/', '\\'], '.')
@@ -65,7 +65,7 @@ class LivewireComponents implements Feature
                     ->map(Str::kebab(...))
                     ->implode('.');
 
-                Livewire::component($moduleName.'::'.$alias, $class);
+                Livewire::component($sliceName.'::'.$alias, $class);
             });
     }
 }

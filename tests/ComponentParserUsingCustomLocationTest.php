@@ -138,6 +138,6 @@ final class ComponentParserUsingCustomLocationTest extends TestCase
         $viewName = $parser->viewName();
 
         /* Assert */
-        $this->assertEquals('api/posts::livewire.create-post', $viewName);
+        $this->assertEquals('api.posts::livewire.create-post', $viewName);
     }
 }

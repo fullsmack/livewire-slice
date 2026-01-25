@@ -25,28 +25,8 @@ class MakeLivewire extends MakeCommand
             return parent::handle();
         }
 
-        $config = config('livewire-slice');
-
-        // SliceDefinitions provides:
-        // - $sliceRootNamespace: The namespace path (e.g., 'Slice' for 'blog', 'Slice\Api' for 'api/posts')
-        // - $sliceName: The slice name (e.g., 'blog', 'posts')
-        // We need to build the full namespace: Slice\Blog\Livewire or Slice\Api\Posts\Livewire
-        $sliceNamespace = Str::studly($this->sliceName);
-        $fullSliceNamespace = $this->sliceRootNamespace === 'Slice'
-            ? "Slice\\{$sliceNamespace}"
-            : "{$this->sliceRootNamespace}\\{$sliceNamespace}";
-
-        $namespace = Str::of($config['namespace'])
-            ->explode('.')
-            ->map(static fn (string $string): string => Str::studly($string))
-            ->implode('\\');
-
-        $viewFolder = Str::of($config['view-folder'])
-            ->explode('.')
-            ->implode('/');
-
-        config(['livewire.class_namespace' => "{$fullSliceNamespace}\\{$namespace}"]);
-        config(['livewire.view_path' => "{$this->slicePath}/resources/views/{$viewFolder}"]);
+        config(['livewire.class_namespace' => $this->getLivewireNamespace()]);
+        config(['livewire.view_path' => $this->getLivewireViewPath()]);
 
         $this->handleWithCustomLocation();
     }
@@ -62,7 +42,8 @@ class MakeLivewire extends MakeCommand
             config('livewire.class_namespace'),
             config('livewire.view_path'),
             $this->argument('name'),
-            $this->option('stub')
+            $this->option('stub'),
+            $this->sliceName
         );
 
         if (!$this->isClassNameValid($name = $this->parser->className()))
@@ -124,15 +105,38 @@ class MakeLivewire extends MakeCommand
             return parent::isFirstTimeMakingAComponent();
         }
 
-        $livewireFolder = config('livewire-slice.namespace');
+        return ! File::isDirectory($this->getLivewireClassPath());
+    }
 
-        $livewireFolder = Str::of($livewireFolder)
+    protected function getLivewireNestedPath(): string
+    {
+        return Str::of(config('livewire-slice.namespace', 'livewire'))
             ->explode('.')
             ->map(Str::studly(...))
             ->implode('/');
+    }
 
-        $path = "{$this->slicePath}/src/{$livewireFolder}";
+    protected function getLivewireNestedNamespace(): string
+    {
+        return Str::of(config('livewire-slice.namespace', 'livewire'))
+            ->explode('.')
+            ->map(Str::studly(...))
+            ->implode('\\');
+    }
 
-        return ! File::isDirectory($path);
+    protected function getLivewireClassPath(): string
+    {
+        return $this->slicePath . '/src/' . $this->getLivewireNestedPath();
+    }
+
+    protected function getLivewireNamespace(): string
+    {
+        return $this->sliceNamespace . '\\' . $this->getLivewireNestedNamespace();
+    }
+
+    protected function getLivewireViewPath(): string
+    {
+        $viewFolder = config('livewire-slice.view-folder', 'livewire');
+        return $this->slicePath . '/resources/views/' . $viewFolder;
     }
 }
