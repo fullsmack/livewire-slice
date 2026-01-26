@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bd43a317e3504d4da78d33ec2e72f4b2",
+    "content-hash": "014b8e74e4f6857ea6e723e0b06e88a0",
     "packages": [
         {
             "name": "brick/math",
@@ -581,7 +581,7 @@
         },
         {
             "name": "fullsmack/laravel-slice",
-            "version": "dev-feature/nested-slices",
+            "version": "0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/fullsmack/laravel-slice.git",
@@ -628,7 +628,7 @@
             "homepage": "https://github.com/fullsmack/laravel-slice",
             "support": {
                 "issues": "https://github.com/fullsmack/laravel-slice/issues",
-                "source": "https://github.com/fullsmack/laravel-slice/tree/feature/nested-slices"
+                "source": "https://github.com/fullsmack/laravel-slice/tree/0.3.0"
             },
             "time": "2026-01-26T10:37:49+00:00"
         },
@@ -8856,9 +8856,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "fullsmack/laravel-slice": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
