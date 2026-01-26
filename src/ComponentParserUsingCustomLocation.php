@@ -24,7 +24,8 @@ class ComponentParserUsingCustomLocation extends ComponentParser
         $pathParts = Str::of($baseViewPath)->replace('\\', '/');
         $sliceRootPos = $pathParts->position("/{$sliceRootFolder}/");
 
-        if ($sliceRootPos === false) {
+        if ($sliceRootPos === false)
+        {
             return (string) $pathParts->before('/resources/views')->afterLast('/');
         }
 
@@ -42,7 +43,6 @@ class ComponentParserUsingCustomLocation extends ComponentParser
             ->implode('/');
 
         $sliceRootFolder = config('laravel-slice.root.folder');
-        $rootNamespace = Str::studly(config('laravel-slice.root.namespace'));
 
         $namespaceParts = Str::of($namespace)->explode('\\');
 

@@ -3,12 +3,11 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Livewire\Livewire;
-use PHPUnit\Framework\Attributes\Test;
-use FullSmack\LivewireSlice\LivewireComponents;
 use FullSmack\LaravelSlice\Slice;
+use FullSmack\LivewireSlice\LivewireComponents;
 
 final class LivewireComponentsTest extends TestCase
 {
