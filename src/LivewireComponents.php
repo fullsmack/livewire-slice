@@ -20,13 +20,13 @@ class LivewireComponents implements Feature
 
     public function register(Slice $slice): void
     {
-        $sliceSourcePath = $slice->basePath();
+        $sliceSourcePath = $slice->sourcePath();
 
         $sliceName = $slice->name();
 
         $livewireNamespace = Str::of($this->componentNamespace)
             ->explode('.')
-            ->map(fn($string) => ucfirst($string))
+            ->map(static fn($string): string => ucfirst($string))
             ->implode('\\');
 
         $namespace = $slice->baseNamespace($livewireNamespace);
@@ -36,9 +36,7 @@ class LivewireComponents implements Feature
             ->map(Str::studly(...))
             ->implode('/');
 
-        $livewireNestedSourcePath = 'src' .DIRECTORY_SEPARATOR. $livewirePath;
-
-        $directory = $sliceSourcePath .DIRECTORY_SEPARATOR. $livewireNestedSourcePath;
+        $directory = $sliceSourcePath .DIRECTORY_SEPARATOR. $livewirePath;
 
         $filesystem = app(Filesystem::class);
 

@@ -585,12 +585,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/fullsmack/laravel-slice.git",
-                "reference": "db30f81aaec2533a50cf68f265c739ab64a7fa33"
+                "reference": "95d299b46fdc85da8d1b9073c836f14b23e9bcbd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/fullsmack/laravel-slice/zipball/db30f81aaec2533a50cf68f265c739ab64a7fa33",
-                "reference": "db30f81aaec2533a50cf68f265c739ab64a7fa33",
+                "url": "https://api.github.com/repos/fullsmack/laravel-slice/zipball/95d299b46fdc85da8d1b9073c836f14b23e9bcbd",
+                "reference": "95d299b46fdc85da8d1b9073c836f14b23e9bcbd",
                 "shasum": ""
             },
             "require": {
@@ -630,7 +630,7 @@
                 "issues": "https://github.com/fullsmack/laravel-slice/issues",
                 "source": "https://github.com/fullsmack/laravel-slice/tree/feature/nested-slices"
             },
-            "time": "2026-01-25T21:58:41+00:00"
+            "time": "2026-01-26T09:46:01+00:00"
         },
         {
             "name": "graham-campbell/result-type",
