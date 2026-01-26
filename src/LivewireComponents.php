@@ -12,9 +12,9 @@ use Livewire\Livewire;
 use Livewire\Component;
 
 use FullSmack\LaravelSlice\Slice;
-use FullSmack\LaravelSlice\Feature;
+use FullSmack\LaravelSlice\Extension;
 
-class LivewireComponents implements Feature
+class LivewireComponents implements Extension
 {
     private string $componentNamespace = 'livewire';
 

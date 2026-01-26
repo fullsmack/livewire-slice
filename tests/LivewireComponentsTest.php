@@ -44,8 +44,8 @@ final class LivewireComponentsTest extends TestCase
         $slice = $this->createMockSlice($sliceName);
 
         /* Act & Assert */
-        $feature = new LivewireComponents();
-        $feature->register($slice);
+        $extension = new LivewireComponents();
+        $extension->register($slice);
 
         $this->assertTrue(true, "Registration should complete without errors");
     }
@@ -66,8 +66,8 @@ final class LivewireComponentsTest extends TestCase
         $slice = $this->createMockSlice($sliceName);
 
         /* Act & Assert */
-        $feature = new LivewireComponents();
-        $feature->register($slice);
+        $extension = new LivewireComponents();
+        $extension->register($slice);
 
         $this->assertTrue(true, "Should handle nested directories without errors");
     }
@@ -83,8 +83,8 @@ final class LivewireComponentsTest extends TestCase
         $slice = $this->createMockSlice($sliceName);
 
         /* Act & Assert */
-        $feature = new LivewireComponents();
-        $feature->register($slice);
+        $extension = new LivewireComponents();
+        $extension->register($slice);
 
         $this->assertTrue(true, "Should handle missing Livewire directory without errors");
     }
@@ -104,8 +104,8 @@ final class LivewireComponentsTest extends TestCase
         $slice = $this->createMockSlice($sliceName);
 
         /* Act */
-        $feature = new LivewireComponents();
-        $feature->register($slice);
+        $extension = new LivewireComponents();
+        $extension->register($slice);
 
         /* Assert */
         $this->assertDirectoryExists($expectedDirectory, "Should use PascalCase 'Livewire' directory");
