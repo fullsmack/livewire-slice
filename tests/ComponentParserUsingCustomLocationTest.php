@@ -4,140 +4,210 @@ declare(strict_types=1);
 namespace Tests;
 
 use Tests\TestCase;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\TestWith;
 use FullSmack\LivewireSlice\ComponentParserUsingCustomLocation;
 
+/**
+ * Tests for ComponentParserUsingCustomLocation.
+ *
+ * Note: The parser now receives all paths explicitly from the caller (MakeLivewire command)
+ * instead of deriving them from the namespace. This makes it simpler and more flexible,
+ * allowing custom slice configurations without relying on config values or static methods.
+ */
 final class ComponentParserUsingCustomLocationTest extends TestCase
 {
-    #[Test]
-    #[TestWith(['Slice\Blog\Livewire', 'blog', 'src/blog/src/Livewire'], 'flat slice')]
-    #[TestWith(['Slice\Api\Posts\Livewire', 'api/posts', 'src/api/posts/src/Livewire'], 'nested slice')]
-    #[TestWith(['Slice\Admin\Api\Users\Livewire', 'admin/api/users', 'src/admin/api/users/src/Livewire'], 'deeply nested slice')]
-    public function it_generates_correct_path_from_namespace(
-        string $namespace,
-        string $sliceName,
-        string $expectedPathSuffix
-    ): void {
-        /* Arrange */
-        config(['laravel-slice.root.namespace' => 'Slice']);
-        config(['laravel-slice.root.folder' => 'src']);
-
-        /* Act */
-        $generatedPath = ComponentParserUsingCustomLocation::generatePathFromNamespace($namespace);
-
-        /* Assert */
-        $expectedPath = base_path($expectedPathSuffix);
-        $this->assertEquals($expectedPath, $generatedPath);
-    }
-
-    #[Test]
-    public function it_generates_correct_path_with_custom_root_namespace(): void
+    private function createParser(
+        string $classNamespace = 'Slice\Blog\Livewire',
+        string $classPath = '/app/src/blog/src/Livewire',
+        string $viewPath = '/app/src/blog/resources/views/livewire',
+        string $testPath = '/app/src/blog/tests/Livewire',
+        string $testNamespace = 'Slice\Blog\Tests\Livewire',
+        string $rawComponentName = 'PostList',
+        string $sliceName = 'blog',
+        ?string $stubSubDirectory = null,
+    ): ComponentParserUsingCustomLocation
     {
-        /* Arrange */
-        config(['laravel-slice.root.namespace' => 'CustomSlice']);
-        config(['laravel-slice.root.folder' => 'modules']);
-        $namespace = 'CustomSlice\Blog\Livewire';
-
-        /* Act */
-        $generatedPath = ComponentParserUsingCustomLocation::generatePathFromNamespace($namespace);
-
-        /* Assert */
-        $expectedPath = base_path('modules/blog/src/Livewire');
-        $this->assertEquals($expectedPath, $generatedPath);
+        return new ComponentParserUsingCustomLocation(
+            classNamespace: $classNamespace,
+            classPath: $classPath,
+            viewPath: $viewPath,
+            testPath: $testPath,
+            testNamespace: $testNamespace,
+            rawComponentName: $rawComponentName,
+            sliceName: $sliceName,
+            stubSubDirectory: $stubSubDirectory,
+        );
     }
 
     #[Test]
-    #[TestWith(['Slice\Blog\Livewire', 'blog', 'src/blog/tests'], 'flat slice')]
-    #[TestWith(['Slice\Api\Posts\Livewire', 'api/posts', 'src/api/posts/tests'], 'nested slice')]
-    public function it_generates_correct_test_path_from_namespace(
-        string $namespace,
-        string $sliceName,
-        string $expectedPathSuffix
-    ): void {
-        /* Arrange */
-        config(['laravel-slice.root.folder' => 'src']);
-        config(['laravel-slice.test.namespace' => 'Tests']);
-
-        /* Act */
-        $generatedPath = ComponentParserUsingCustomLocation::generateTestPathFromNamespace($namespace);
+    public function it_stores_class_namespace(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(classNamespace: 'Slice\Blog\Livewire');
 
         /* Assert */
-        $expectedPath = base_path($expectedPathSuffix);
-        $this->assertEquals($expectedPath, $generatedPath);
+        $this->assertEquals('Slice\Blog\Livewire', $parser->classNamespace());
+    }
+
+    #[Test]
+    public function it_builds_full_class_path(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            classPath: '/app/src/blog/src/Livewire',
+            rawComponentName: 'PostList',
+        );
+
+        /* Assert */
+        $this->assertEquals('/app/src/blog/src/Livewire/PostList.php', $parser->classPath());
+    }
+
+    #[Test]
+    public function it_builds_full_view_path(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            viewPath: '/app/src/blog/resources/views/livewire',
+            rawComponentName: 'PostList',
+        );
+
+        /* Assert */
+        $this->assertEquals('/app/src/blog/resources/views/livewire/post-list.blade.php', $parser->viewPath());
+    }
+
+    #[Test]
+    public function it_builds_full_test_path(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            testPath: '/app/src/blog/tests/Livewire',
+            rawComponentName: 'PostList',
+        );
+
+        /* Assert */
+        $this->assertEquals('/app/src/blog/tests/Livewire/PostListTest.php', $parser->testPath());
+    }
+
+    #[Test]
+    public function it_stores_test_namespace(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(testNamespace: 'Slice\Blog\Tests\Livewire');
+
+        /* Assert */
+        $this->assertEquals('Slice\Blog\Tests\Livewire', $parser->testNamespace());
+    }
+
+    #[Test]
+    public function it_parses_component_name(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(rawComponentName: 'PostList');
+
+        /* Assert */
+        $this->assertEquals('post-list', $parser->component());
+        $this->assertEquals('PostList', $parser->className());
+    }
+
+    #[Test]
+    public function it_parses_nested_component_name(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(rawComponentName: 'Posts/CommentList');
+
+        /* Assert */
+        $this->assertEquals('comment-list', $parser->component());
+        $this->assertEquals('CommentList', $parser->className());
+    }
+
+    #[Test]
+    public function it_builds_nested_class_path(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            classPath: '/app/src/blog/src/Livewire',
+            rawComponentName: 'Posts/CommentList',
+        );
+
+        /* Assert */
+        $this->assertEquals('/app/src/blog/src/Livewire/Posts/CommentList.php', $parser->classPath());
+    }
+
+    #[Test]
+    public function it_builds_nested_view_path(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            viewPath: '/app/src/blog/resources/views/livewire',
+            rawComponentName: 'Posts/CommentList',
+        );
+
+        /* Assert */
+        // View paths use DIRECTORY_SEPARATOR, so we check the parts are correct
+        $viewPath = $parser->viewPath();
+        $this->assertStringStartsWith('/app/src/blog/resources/views/livewire/', $viewPath);
+        $this->assertStringEndsWith('comment-list.blade.php', $viewPath);
+        $this->assertStringContainsString('posts', $viewPath);
+    }
+
+    #[Test]
+    public function it_builds_nested_class_namespace(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            classNamespace: 'Slice\Blog\Livewire',
+            rawComponentName: 'Posts/CommentList',
+        );
+
+        /* Assert */
+        $this->assertEquals('Slice\Blog\Livewire\Posts', $parser->classNamespace());
     }
 
     #[Test]
     public function it_generates_view_name_with_slice_prefix(): void
     {
         /* Arrange */
-        config(['laravel-slice.root.folder' => 'src']);
         config(['livewire-slice.view-folder' => 'livewire']);
 
-        $namespace = 'Slice\Blog\Livewire';
-        $viewPath = base_path('src/blog/resources/views/livewire');
-        $componentName = 'post-list';
-
-        $parser = new ComponentParserUsingCustomLocation(
-            $namespace,
-            $viewPath,
-            'PostList',
-            null
+        /* Act */
+        $parser = $this->createParser(
+            rawComponentName: 'PostList',
+            sliceName: 'blog',
         );
 
-        /* Act */
-        $viewName = $parser->viewName();
-
         /* Assert */
-        $this->assertEquals('blog::livewire.post-list', $viewName);
+        $this->assertEquals('blog::livewire.post-list', $parser->viewName());
     }
 
     #[Test]
     public function it_generates_view_name_for_nested_component(): void
     {
         /* Arrange */
-        config(['laravel-slice.root.folder' => 'src']);
         config(['livewire-slice.view-folder' => 'livewire']);
 
-        $namespace = 'Slice\Blog\Livewire\Posts';
-        $viewPath = base_path('src/blog/resources/views/livewire');
-
-        $parser = new ComponentParserUsingCustomLocation(
-            $namespace,
-            $viewPath,
-            'Posts/CommentList',
-            null
+        /* Act */
+        $parser = $this->createParser(
+            rawComponentName: 'Posts/CommentList',
+            sliceName: 'blog',
         );
 
-        /* Act */
-        $viewName = $parser->viewName();
-
         /* Assert */
-        $this->assertEquals('blog::livewire.posts.comment-list', $viewName);
+        $this->assertEquals('blog::livewire.posts.comment-list', $parser->viewName());
     }
 
     #[Test]
     public function it_generates_view_name_for_nested_slice(): void
     {
         /* Arrange */
-        config(['laravel-slice.root.folder' => 'src']);
         config(['livewire-slice.view-folder' => 'livewire']);
 
-        $namespace = 'Slice\Api\Posts\Livewire';
-        $viewPath = base_path('src/api/posts/resources/views/livewire');
-
-        $parser = new ComponentParserUsingCustomLocation(
-            $namespace,
-            $viewPath,
-            'CreatePost',
-            null
+        /* Act */
+        $parser = $this->createParser(
+            rawComponentName: 'CreatePost',
+            sliceName: 'api.posts',
         );
 
-        /* Act */
-        $viewName = $parser->viewName();
-
         /* Assert */
-        $this->assertEquals('api.posts::livewire.create-post', $viewName);
+        $this->assertEquals('api.posts::livewire.create-post', $parser->viewName());
     }
 }

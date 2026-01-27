@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
+use FullSmack\LaravelSlice\Slice;
+use FullSmack\LaravelSlice\SliceRegistry;
 
 final class MakeLivewireTest extends TestCase
 {
@@ -22,6 +24,7 @@ final class MakeLivewireTest extends TestCase
     protected function tearDown(): void
     {
         $this->cleanupTestSlices();
+        SliceRegistry::clear();
         parent::tearDown();
     }
 
@@ -52,9 +55,10 @@ final class MakeLivewireTest extends TestCase
     public function it_generates_livewire_component_in_nested_slice_with_correct_namespace(): void
     {
         /* Arrange */
-        $sliceName = 'api/posts';
+        $slicePath = 'api/posts';
+        $sliceName = 'api.posts';
         $componentName = 'CreatePost';
-        $this->createSliceStructure($sliceName);
+        $this->createSliceStructure($slicePath);
 
         /* Act */
         $this->artisan('livewire:make', [
@@ -97,9 +101,10 @@ final class MakeLivewireTest extends TestCase
     public function it_generates_view_file_in_nested_slice_with_correct_path(): void
     {
         /* Arrange */
-        $sliceName = 'api/posts';
+        $sliceName = 'api.posts';
+        $slicePath = 'api/posts';
         $componentName = 'CreatePost';
-        $this->createSliceStructure($sliceName);
+        $this->createSliceStructure($slicePath);
 
         /* Act */
         $this->artisan('livewire:make', [
@@ -113,16 +118,17 @@ final class MakeLivewireTest extends TestCase
     }
 
     #[Test]
-    #[TestWith(['blog', 'Slice\Blog\Livewire'], 'flat slice')]
-    #[TestWith(['api/posts', 'Slice\Api\Posts\Livewire'], 'nested slice with two levels')]
-    #[TestWith(['admin/api/users', 'Slice\Admin\Api\Users\Livewire'], 'deeply nested slice')]
+    #[TestWith(['blog', 'blog', 'Slice\Blog\Livewire'], 'flat slice')]
+    #[TestWith(['api/posts', 'api.posts', 'Slice\Api\Posts\Livewire'], 'nested slice with two levels')]
+    #[TestWith(['admin/api/users', 'admin.api.users', 'Slice\Admin\Api\Users\Livewire'], 'deeply nested slice')]
     public function it_derives_correct_psr4_namespace_for_different_slice_structures(
+        string $slicePath,
         string $sliceName,
         string $expectedNamespace
     ): void {
         /* Arrange */
         $componentName = 'TestComponent';
-        $this->createSliceStructure($sliceName);
+        $this->createSliceStructure($slicePath);
 
         /* Act */
         $this->artisan('livewire:make', [
@@ -131,12 +137,47 @@ final class MakeLivewireTest extends TestCase
         ])->assertSuccessful();
 
         /* Assert */
-        $slicePath = str_replace('/', DIRECTORY_SEPARATOR, $sliceName);
+        $slicePath = str_replace('/', DIRECTORY_SEPARATOR, $slicePath);
         $expectedClassPath = base_path("src/{$slicePath}/src/Livewire/{$componentName}.php");
         $this->assertFileExists($expectedClassPath);
 
         $classContent = File::get($expectedClassPath);
         $this->assertStringContainsString("namespace {$expectedNamespace};", $classContent);
+    }
+
+    #[Test]
+    #[TestWith(['payments', 'integrations/stripe', 'Vendor\Stripe\Payments', 'Vendor\Stripe\Payments\Livewire'], 'vendor-style namespace')]
+    #[TestWith(['user-profile', 'users/profile', 'App\Domain\UserProfile', 'App\Domain\UserProfile\Livewire'], 'custom domain namespace')]
+    #[TestWith(['acme.billing', 'billing', 'Acme\Billing\Subscriptions', 'Acme\Billing\Subscriptions\Livewire'], 'dotted name with custom namespace')]
+    public function it_preserves_custom_namespace_from_registry(
+        string $sliceName,
+        string $slicePath,
+        string $customNamespace,
+        string $expectedLivewireNamespace
+    ): void
+    {
+        /* Arrange */
+        $componentName = 'TestComponent';
+        $this->registerSliceWithCustomNamespace($sliceName, $slicePath, $customNamespace);
+
+        // Debug: verify slice is registered
+        $this->assertTrue(SliceRegistry::has($sliceName), "Slice '{$sliceName}' should be registered");
+        $registeredSlice = SliceRegistry::get($sliceName);
+
+        /* Act */
+        $this->artisan('livewire:make', [
+            'name' => $componentName,
+            '--slice' => $sliceName,
+        ])->expectsOutputToContain('COMPONENT CREATED')
+          ->assertSuccessful();
+
+        /* Assert */
+        // Use the registered slice's actual path
+        $expectedClassPath = $registeredSlice->sourcePath('Livewire') . DIRECTORY_SEPARATOR . "{$componentName}.php";
+        $this->assertFileExists($expectedClassPath, "Component should be created at: {$expectedClassPath}");
+
+        $classContent = File::get($expectedClassPath);
+        $this->assertStringContainsString("namespace {$expectedLivewireNamespace};", $classContent);
     }
 
     #[Test]
@@ -218,10 +259,11 @@ final class MakeLivewireTest extends TestCase
         /* Arrange */
         $sliceName = 'blog';
         $componentName = 'TestComponent';
-        $this->createSliceStructure($sliceName);
 
-        // Modify the slice root namespace
+        // Modify the slice root namespace BEFORE creating the slice
         config(['laravel-slice.root.namespace' => 'CustomSlice']);
+
+        $this->createSliceStructure($sliceName);
 
         /* Act */
         $this->artisan('livewire:make', [
@@ -244,6 +286,43 @@ final class MakeLivewireTest extends TestCase
         File::makeDirectory($slicePath, 0755, true);
         File::makeDirectory("{$slicePath}/src", 0755, true);
         File::makeDirectory("{$slicePath}/resources/views", 0755, true);
+
+        // Build the namespace from the slice path using configured root namespace
+        $rootNamespace = Str::studly(config('laravel-slice.root.namespace', 'Slice'));
+        $namespaceSegments = array_map([Str::class, 'studly'], explode('/', $sliceName));
+        $namespace = $rootNamespace . '\\' . implode('\\', $namespaceSegments);
+
+        // Build the slice identifier (dot notation)
+        $identifier = str_replace('/', '.', $sliceName);
+
+        // Register the slice in the registry
+        $slice = new Slice();
+        $slice->setName($identifier);
+        $slice->setPath($slicePath);
+        $slice->setNamespace($namespace);
+
+        SliceRegistry::register($slice);
+    }
+
+    /**
+     * Helper method to register a slice with custom (non-conventional) namespace.
+     */
+    private function registerSliceWithCustomNamespace(
+        string $sliceName,
+        string $slicePath,
+        string $customNamespace
+    ): void {
+        $absolutePath = base_path("src/{$slicePath}");
+        File::makeDirectory($absolutePath, 0755, true);
+        File::makeDirectory("{$absolutePath}/src", 0755, true);
+        File::makeDirectory("{$absolutePath}/resources/views", 0755, true);
+
+        $slice = new Slice();
+        $slice->setName($sliceName);
+        $slice->setPath($absolutePath);
+        $slice->setNamespace($customNamespace);
+
+        SliceRegistry::register($slice);
     }
 
     /**
@@ -255,6 +334,9 @@ final class MakeLivewireTest extends TestCase
             'blog',
             'api',
             'admin',
+            'integrations',
+            'users',
+            'billing',
         ];
 
         foreach ($testSlices as $slice) {

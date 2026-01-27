@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "014b8e74e4f6857ea6e723e0b06e88a0",
+    "content-hash": "bd43a317e3504d4da78d33ec2e72f4b2",
     "packages": [
         {
             "name": "brick/math",
@@ -581,16 +581,16 @@
         },
         {
             "name": "fullsmack/laravel-slice",
-            "version": "0.3.0",
+            "version": "dev-feature/nested-slices",
             "source": {
                 "type": "git",
                 "url": "https://github.com/fullsmack/laravel-slice.git",
-                "reference": "d169c3d44ca5c0a51bbeae09a4b2c12f7f0ae105"
+                "reference": "e3142bf0d712fda09a15b98cace306502174c4a4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/fullsmack/laravel-slice/zipball/d169c3d44ca5c0a51bbeae09a4b2c12f7f0ae105",
-                "reference": "d169c3d44ca5c0a51bbeae09a4b2c12f7f0ae105",
+                "url": "https://api.github.com/repos/fullsmack/laravel-slice/zipball/e3142bf0d712fda09a15b98cace306502174c4a4",
+                "reference": "e3142bf0d712fda09a15b98cace306502174c4a4",
                 "shasum": ""
             },
             "require": {
@@ -628,9 +628,9 @@
             "homepage": "https://github.com/fullsmack/laravel-slice",
             "support": {
                 "issues": "https://github.com/fullsmack/laravel-slice/issues",
-                "source": "https://github.com/fullsmack/laravel-slice/tree/0.3.0"
+                "source": "https://github.com/fullsmack/laravel-slice/tree/feature/nested-slices"
             },
-            "time": "2026-01-26T10:37:49+00:00"
+            "time": "2026-01-27T12:10:54+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -7503,16 +7503,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "11.5.49",
+            "version": "11.5.50",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "4f1750675ba411dd6c2d5fa8a3cca07f6742020e"
+                "reference": "fdfc727f0fcacfeb8fcb30c7e5da173125b58be3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/4f1750675ba411dd6c2d5fa8a3cca07f6742020e",
-                "reference": "4f1750675ba411dd6c2d5fa8a3cca07f6742020e",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/fdfc727f0fcacfeb8fcb30c7e5da173125b58be3",
+                "reference": "fdfc727f0fcacfeb8fcb30c7e5da173125b58be3",
                 "shasum": ""
             },
             "require": {
@@ -7584,7 +7584,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.49"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.50"
             },
             "funding": [
                 {
@@ -7608,7 +7608,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-01-24T16:09:28+00:00"
+            "time": "2026-01-27T05:59:18+00:00"
         },
         {
             "name": "psy/psysh",
@@ -8856,7 +8856,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "fullsmack/laravel-slice": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

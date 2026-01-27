@@ -7,77 +7,59 @@ use Livewire\Features\SupportConsoleCommands\Commands\ComponentParser;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 
+/**
+ * Component parser that uses explicit slice paths instead of deriving from namespace.
+ *
+ * This class does NOT call the parent constructor to avoid the static generatePathFromNamespace
+ * calls that would derive incorrect paths for custom slice namespaces.
+ *
+ * Future consideration for custom Livewire locations per slice:
+ * - The Slice class could provide a `livewireConfig()` method returning custom namespace/path
+ * - Or a slice-specific config could define 'livewire.namespace' and 'livewire.view-folder'
+ */
 class ComponentParserUsingCustomLocation extends ComponentParser
 {
     protected string $sliceName;
 
-    public function __construct($classNamespace, $baseViewPath, $rawComponentName, $stub = null, string $sliceName = null)
-    {
-        parent::__construct($classNamespace, $baseViewPath, $rawComponentName, $stub);
+    public function __construct(
+        string $classNamespace,
+        string $classPath,
+        string $viewPath,
+        string $testPath,
+        string $testNamespace,
+        string $rawComponentName,
+        string $sliceName,
+        ?string $stubSubDirectory = null,
+    ) {
+        // Do NOT call parent::__construct() - we set all properties explicitly
 
-        $this->sliceName = $sliceName ?? $this->extractSliceNameFromPath($baseViewPath);
-    }
+        $this->sliceName = $sliceName;
 
-    protected function extractSliceNameFromPath(string $baseViewPath): string
-    {
-        $sliceRootFolder = config('laravel-slice.root.folder');
-        $pathParts = Str::of($baseViewPath)->replace('\\', '/');
-        $sliceRootPos = $pathParts->position("/{$sliceRootFolder}/");
+        $this->baseClassNamespace = $classNamespace;
+        $this->baseTestNamespace = $testNamespace;
 
-        if ($sliceRootPos === false)
+        $this->baseClassPath = rtrim($classPath, DIRECTORY_SEPARATOR) . '/';
+        $this->baseViewPath = rtrim($viewPath, DIRECTORY_SEPARATOR) . '/';
+        $this->baseTestPath = rtrim($testPath, DIRECTORY_SEPARATOR) . '/';
+
+        if (!empty($stubSubDirectory) && Str::of($stubSubDirectory)->startsWith('..'))
         {
-            return (string) $pathParts->before('/resources/views')->afterLast('/');
+            $this->stubDirectory = rtrim((string) Str::of($stubSubDirectory)->replaceFirst('..' . DIRECTORY_SEPARATOR, ''), DIRECTORY_SEPARATOR) . '/';
+        }
+        else
+        {
+            $this->stubDirectory = rtrim('stubs' . DIRECTORY_SEPARATOR . ($stubSubDirectory ?? ''), DIRECTORY_SEPARATOR) . '/';
         }
 
-        return (string) $pathParts
-            ->substr($sliceRootPos + strlen("/{$sliceRootFolder}/"))
-            ->before('/resources/views')
-            ->replace('/', '.');
-    }
+        $directories = preg_split('/[.\/(\\\\)]+/', $rawComponentName);
 
-    public static function generatePathFromNamespace($namespace)
-    {
-        $livewireNestedPath = Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...))
-            ->implode('/');
+        $camelCase = Str::of(array_pop($directories))->camel();
+        $kebabCase = Str::of($camelCase)->kebab();
 
-        $sliceRootFolder = config('laravel-slice.root.folder');
+        $this->component = $kebabCase;
+        $this->componentClass = Str::of($this->component)->studly();
 
-        $namespaceParts = Str::of($namespace)->explode('\\');
-
-        $livewireNamespaceParts = Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...));
-
-        $sliceParts = $namespaceParts
-            ->skip(1)
-            ->takeUntil(fn($part) => $livewireNamespaceParts->contains($part))
-            ->map(Str::kebab(...));
-
-        $slicePath = $sliceParts->implode('/');
-
-        return base_path("{$sliceRootFolder}/{$slicePath}/src/{$livewireNestedPath}");
-    }
-
-    public static function generateTestPathFromNamespace($namespace)
-    {
-        $sliceRootFolder = config('laravel-slice.root.folder');
-
-        $namespaceParts = Str::of($namespace)->explode('\\');
-
-        $livewireNamespaceParts = Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...));
-
-        $sliceParts = $namespaceParts
-            ->skip(1)
-            ->takeUntil(fn($part) => $livewireNamespaceParts->contains($part))
-            ->map(Str::kebab(...));
-
-        $slicePath = $sliceParts->implode('/');
-
-        return base_path("{$sliceRootFolder}/{$slicePath}/tests");
+        $this->directories = array_map(Str::studly(...), $directories);
     }
 
     public function viewName()

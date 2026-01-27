@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace FullSmack\LivewireSlice\Command;
 
+use Illuminate\Console\Command;
 use Livewire\Features\SupportConsoleCommands\Commands\MakeCommand;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 use FullSmack\LaravelSlice\Command\SliceDefinitions;
+use FullSmack\LaravelSlice\SliceNotRegistered;
 use FullSmack\LivewireSlice\ComponentParserUsingCustomLocation;
 
 class MakeLivewire extends MakeCommand
@@ -18,34 +20,47 @@ class MakeLivewire extends MakeCommand
 
     public function handle()
     {
-        $this->defineSliceUsingOption();
+        $sliceName = $this->option('slice');
 
-        if(!$this->createInSlice())
+        if (!$sliceName)
         {
             return parent::handle();
+        }
+
+        try {
+            $this->loadFromRegistry($sliceName);
+        }
+        catch (SliceNotRegistered $e)
+        {
+            $this->error($e->getMessage());
+
+            return Command::FAILURE;
         }
 
         config(['livewire.class_namespace' => $this->getLivewireNamespace()]);
         config(['livewire.view_path' => $this->getLivewireViewPath()]);
 
-        $this->handleWithCustomLocation();
-    }
-
-    private function createInSlice(): bool
-    {
-        return $this->option('slice') !== null;
+        return $this->handleWithCustomLocation();
     }
 
     public function handleWithCustomLocation()
     {
         $this->parser = new ComponentParserUsingCustomLocation(
-            config('livewire.class_namespace'),
-            config('livewire.view_path'),
-            $this->argument('name'),
-            $this->option('stub'),
-            $this->sliceName
+            classNamespace: $this->getLivewireNamespace(),
+            classPath: $this->getLivewireClassPath(),
+            viewPath: $this->getLivewireViewPath(),
+            testPath: $this->getLivewireTestPath(),
+            testNamespace: $this->getLivewireTestNamespace(),
+            rawComponentName: $this->argument('name'),
+            sliceName: $this->sliceName,
+            stubSubDirectory: $this->option('stub'),
         );
 
+        return $this->parentCommandOutput();
+    }
+
+    private function parentCommandOutput()
+    {
         if (!$this->isClassNameValid($name = $this->parser->className()))
         {
             $this->line("<options=bold,reverse;fg=red> WHOOPS! </> 😳 \n");
@@ -77,7 +92,7 @@ class MakeLivewire extends MakeCommand
             $test = $this->createTest($force, $testType);
         }
 
-        if($class || $view)
+        if ($class || $view)
         {
             $this->line("<options=bold,reverse;fg=green> COMPONENT CREATED </> 🤙\n");
             $class && $this->line("<options=bold;fg=green>CLASS:</> {$this->parser->relativeClassPath()}");
@@ -101,7 +116,8 @@ class MakeLivewire extends MakeCommand
 
     public function isFirstTimeMakingAComponent()
     {
-        if (!$this->createInSlice()) {
+        if (!$this->runInSlice())
+        {
             return parent::isFirstTimeMakingAComponent();
         }
 
@@ -126,17 +142,27 @@ class MakeLivewire extends MakeCommand
 
     protected function getLivewireClassPath(): string
     {
-        return $this->slicePath . '/src/' . $this->getLivewireNestedPath();
+        return $this->sliceSourcePath($this->getLivewireNestedPath());
     }
 
     protected function getLivewireNamespace(): string
     {
-        return $this->sliceNamespace . '\\' . $this->getLivewireNestedNamespace();
+        return $this->sliceNamespace() . '\\' . $this->getLivewireNestedNamespace();
     }
 
     protected function getLivewireViewPath(): string
     {
         $viewFolder = config('livewire-slice.view-folder', 'livewire');
-        return $this->slicePath . '/resources/views/' . $viewFolder;
+        return $this->slicePath('resources/views/' . $viewFolder);
+    }
+
+    protected function getLivewireTestPath(): string
+    {
+        return $this->slicePath('tests/Livewire');
+    }
+
+    protected function getLivewireTestNamespace(): string
+    {
+        return $this->sliceTestNamespace('Livewire');
     }
 }
