@@ -115,8 +115,8 @@ final class LivewireComponentsTest extends TestCase
     {
         $slice = new Slice();
         $slice->setName($sliceName);
-        $slice->setPath(base_path("src/{$sliceName}/src"));
-        $slice->setBaseNamespace("Slice\\" . Str::studly($sliceName));
+        $slice->setPath(base_path("src/{$sliceName}"));
+        $slice->setNamespace("Slice\\" . Str::studly($sliceName));
 
         return $slice;
     }

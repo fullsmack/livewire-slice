@@ -29,7 +29,7 @@ class LivewireComponents implements Extension
             ->map(static fn($string): string => ucfirst($string))
             ->implode('\\');
 
-        $namespace = $slice->baseNamespace($livewireNamespace);
+        $namespace = $slice->namespace($livewireNamespace);
 
         $livewirePath = Str::of($this->componentNamespace)
             ->explode('.')
