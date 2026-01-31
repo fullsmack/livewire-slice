@@ -18,6 +18,45 @@ class LivewireComponents implements Extension
 {
     private string $componentNamespace = 'livewire';
 
+    private ?string $viewNamespace = null;
+
+    public static function configure(): self
+    {
+        return new self();
+    }
+
+    public function componentPath(string $namespace): self
+    {
+        $this->componentNamespace = $namespace;
+
+        return $this;
+    }
+
+    public function viewPath(string $namespace): self
+    {
+        $this->viewNamespace = $namespace;
+
+        return $this;
+    }
+
+    public function path(string $namespace): self
+    {
+        $this->componentNamespace = $namespace;
+        $this->viewNamespace = $namespace;
+
+        return $this;
+    }
+
+    public function getComponentNamespace(): string
+    {
+        return $this->componentNamespace;
+    }
+
+    public function getViewNamespace(): string
+    {
+        return $this->viewNamespace ?? config('livewire-slice.view-folder', 'livewire');
+    }
+
     public function register(Slice $slice): void
     {
         $sliceSourcePath = $slice->sourcePath();

@@ -111,6 +111,118 @@ final class LivewireComponentsTest extends TestCase
         $this->assertDirectoryExists($expectedDirectory, "Should use PascalCase 'Livewire' directory");
     }
 
+    #[Test]
+    public function configure_returns_an_instance(): void
+    {
+        $extension = LivewireComponents::configure();
+
+        $this->assertInstanceOf(LivewireComponents::class, $extension);
+    }
+
+    #[Test]
+    public function component_path_is_chainable_and_sets_component_namespace(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->componentPath('ui.web.livewire');
+
+        $this->assertInstanceOf(LivewireComponents::class, $extension);
+        $this->assertSame('ui.web.livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function view_path_is_chainable_and_sets_view_namespace(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->viewPath('custom-views');
+
+        $this->assertInstanceOf(LivewireComponents::class, $extension);
+        $this->assertSame('custom-views', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function path_sets_both_component_and_view_namespace(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->path('shared.namespace');
+
+        $this->assertSame('shared.namespace', $extension->getComponentNamespace());
+        $this->assertSame('shared.namespace', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function default_component_namespace_is_livewire(): void
+    {
+        $extension = new LivewireComponents();
+
+        $this->assertSame('livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function default_view_namespace_falls_back_to_config(): void
+    {
+        $extension = new LivewireComponents();
+
+        $this->assertSame(
+            config('livewire-slice.view-folder', 'livewire'),
+            $extension->getViewNamespace()
+        );
+    }
+
+    #[Test]
+    public function component_path_does_not_affect_view_namespace(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->componentPath('ui.web.livewire');
+
+        $this->assertSame('ui.web.livewire', $extension->getComponentNamespace());
+        $this->assertSame(
+            config('livewire-slice.view-folder', 'livewire'),
+            $extension->getViewNamespace()
+        );
+    }
+
+    #[Test]
+    public function it_registers_components_with_custom_component_path(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+
+        $this->createSliceStructure($sliceName);
+
+        $customDirectory = base_path("src/{$sliceName}/src/Ui/Web/Livewire");
+
+        File::ensureDirectoryExists($customDirectory);
+
+        $slice = $this->createMockSlice($sliceName);
+
+        /* Act & Assert */
+        $extension = LivewireComponents::configure()
+            ->componentPath('ui.web.livewire');
+
+        $extension->register($slice);
+
+        $this->assertTrue(true, "Registration with custom component path should complete without errors");
+    }
+
+    #[Test]
+    public function it_handles_missing_custom_directory_gracefully(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+
+        $this->createSliceStructure($sliceName);
+
+        $slice = $this->createMockSlice($sliceName);
+
+        /* Act & Assert */
+        $extension = LivewireComponents::configure()
+            ->componentPath('nonexistent.deep.path');
+
+        $extension->register($slice);
+
+        $this->assertTrue(true, "Should handle missing custom directory without errors");
+    }
+
     private function createMockSlice(string $sliceName): Slice
     {
         $slice = new Slice();
