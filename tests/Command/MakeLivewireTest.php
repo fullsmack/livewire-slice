@@ -277,6 +277,100 @@ final class MakeLivewireTest extends TestCase
         $this->assertStringContainsString('namespace CustomSlice\Blog\Livewire;', $classContent);
     }
 
+    #[Test]
+    public function it_generates_component_at_custom_component_path(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+        $componentName = 'PostList';
+        $this->createSliceStructure($sliceName);
+
+        /* Act */
+        $this->artisan('livewire:make', [
+            'name' => $componentName,
+            '--slice' => $sliceName,
+            '--component-path' => 'filament.livewire',
+        ])->assertSuccessful();
+
+        /* Assert */
+        $expectedClassPath = base_path("src/{$sliceName}/src/Filament/Livewire/{$componentName}.php");
+        $this->assertFileExists($expectedClassPath);
+
+        $classContent = File::get($expectedClassPath);
+        $this->assertStringContainsString('namespace Slice\Blog\Filament\Livewire;', $classContent);
+        $this->assertStringContainsString("class {$componentName} extends Component", $classContent);
+    }
+
+    #[Test]
+    public function it_generates_view_at_custom_view_path(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+        $componentName = 'PostList';
+        $this->createSliceStructure($sliceName);
+
+        /* Act */
+        $this->artisan('livewire:make', [
+            'name' => $componentName,
+            '--slice' => $sliceName,
+            '--view-path' => 'filament.livewire',
+        ])->assertSuccessful();
+
+        /* Assert */
+        $expectedViewPath = base_path("src/{$sliceName}/resources/views/filament/livewire/post-list.blade.php");
+        $this->assertFileExists($expectedViewPath);
+    }
+
+    #[Test]
+    public function it_generates_component_and_view_at_custom_paths(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+        $componentName = 'ActionPanel';
+        $this->createSliceStructure($sliceName);
+
+        /* Act */
+        $this->artisan('livewire:make', [
+            'name' => $componentName,
+            '--slice' => $sliceName,
+            '--component-path' => 'filament.livewire',
+            '--view-path' => 'filament.livewire',
+        ])->assertSuccessful();
+
+        /* Assert */
+        $expectedClassPath = base_path("src/{$sliceName}/src/Filament/Livewire/{$componentName}.php");
+        $this->assertFileExists($expectedClassPath);
+
+        $classContent = File::get($expectedClassPath);
+        $this->assertStringContainsString('namespace Slice\Blog\Filament\Livewire;', $classContent);
+
+        $expectedViewPath = base_path("src/{$sliceName}/resources/views/filament/livewire/action-panel.blade.php");
+        $this->assertFileExists($expectedViewPath);
+    }
+
+    #[Test]
+    public function it_uses_custom_view_folder_in_generated_view_reference(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+        $componentName = 'ActionPanel';
+        $this->createSliceStructure($sliceName);
+
+        /* Act */
+        $this->artisan('livewire:make', [
+            'name' => $componentName,
+            '--slice' => $sliceName,
+            '--component-path' => 'filament.livewire',
+            '--view-path' => 'filament.livewire',
+        ])->assertSuccessful();
+
+        /* Assert */
+        $classContent = File::get(
+            base_path("src/{$sliceName}/src/Filament/Livewire/{$componentName}.php")
+        );
+        $this->assertStringContainsString('filament.livewire.action-panel', $classContent);
+    }
+
     /**
      * Helper method to create the basic slice directory structure
      */

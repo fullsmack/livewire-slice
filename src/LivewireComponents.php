@@ -16,9 +16,9 @@ use FullSmack\LaravelSlice\Extension;
 
 class LivewireComponents implements Extension
 {
-    private string $componentNamespace = 'livewire';
+    private array $componentPaths = [];
 
-    private ?string $viewNamespace = null;
+    private array $viewPaths = [];
 
     public static function configure(): self
     {
@@ -27,50 +27,70 @@ class LivewireComponents implements Extension
 
     public function componentPath(string $namespace): self
     {
-        $this->componentNamespace = $namespace;
+        $this->componentPaths[] = $namespace;
 
         return $this;
     }
 
     public function viewPath(string $namespace): self
     {
-        $this->viewNamespace = $namespace;
+        $this->viewPaths[] = $namespace;
 
         return $this;
     }
 
     public function path(string $namespace): self
     {
-        $this->componentNamespace = $namespace;
-        $this->viewNamespace = $namespace;
+        $this->componentPaths[] = $namespace;
+        $this->viewPaths[] = $namespace;
 
         return $this;
     }
 
     public function getComponentNamespace(): string
     {
-        return $this->componentNamespace;
+        return $this->componentPaths[0] ?? 'livewire';
     }
 
     public function getViewNamespace(): string
     {
-        return $this->viewNamespace ?? config('livewire-slice.view-folder', 'livewire');
+        return $this->viewPaths[0] ?? config('livewire-slice.view-folder', 'livewire');
+    }
+
+    public function getComponentPaths(): array
+    {
+        return !empty($this->componentPaths) ? $this->componentPaths : ['livewire'];
+    }
+
+    public function getViewPaths(): array
+    {
+        return !empty($this->viewPaths)
+            ? $this->viewPaths
+            : [config('livewire-slice.view-folder', 'livewire')];
     }
 
     public function register(Slice $slice): void
+    {
+        foreach ($this->getComponentPaths() as $componentNamespace)
+        {
+            $this->registerComponentsFrom($slice, $componentNamespace);
+        }
+    }
+
+    private function registerComponentsFrom(Slice $slice, string $componentNamespace): void
     {
         $sliceSourcePath = $slice->sourcePath();
 
         $sliceName = $slice->name();
 
-        $livewireNamespace = Str::of($this->componentNamespace)
+        $livewireNamespace = Str::of($componentNamespace)
             ->explode('.')
             ->map(static fn($string): string => ucfirst($string))
             ->implode('\\');
 
         $namespace = $slice->namespace($livewireNamespace);
 
-        $livewirePath = Str::of($this->componentNamespace)
+        $livewirePath = Str::of($componentNamespace)
             ->explode('.')
             ->map(Str::studly(...))
             ->implode('/');

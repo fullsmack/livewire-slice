@@ -223,6 +223,116 @@ final class LivewireComponentsTest extends TestCase
         $this->assertTrue(true, "Should handle missing custom directory without errors");
     }
 
+    #[Test]
+    public function multiple_component_paths_accumulate(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->componentPath('livewire')
+            ->componentPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+        $this->assertSame('livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function multiple_view_paths_accumulate(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->viewPath('livewire')
+            ->viewPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+        $this->assertSame('livewire', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function get_component_paths_returns_default_when_empty(): void
+    {
+        $extension = new LivewireComponents();
+
+        $this->assertSame(['livewire'], $extension->getComponentPaths());
+    }
+
+    #[Test]
+    public function get_view_paths_returns_default_when_empty(): void
+    {
+        $extension = new LivewireComponents();
+
+        $this->assertSame(
+            [config('livewire-slice.view-folder', 'livewire')],
+            $extension->getViewPaths()
+        );
+    }
+
+    #[Test]
+    public function path_accumulates_to_both_component_and_view_paths(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->path('livewire')
+            ->path('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+    }
+
+    #[Test]
+    public function component_and_view_paths_accumulate_independently(): void
+    {
+        $extension = LivewireComponents::configure()
+            ->componentPath('livewire')
+            ->viewPath('livewire')
+            ->componentPath('filament.livewire')
+            ->viewPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+    }
+
+    #[Test]
+    public function it_registers_from_multiple_component_directories(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+
+        $this->createSliceStructure($sliceName);
+
+        File::ensureDirectoryExists(base_path("src/{$sliceName}/src/Livewire"));
+        File::ensureDirectoryExists(base_path("src/{$sliceName}/src/Filament/Livewire"));
+
+        $slice = $this->createMockSlice($sliceName);
+
+        /* Act & Assert */
+        $extension = LivewireComponents::configure()
+            ->componentPath('livewire')
+            ->componentPath('filament.livewire');
+
+        $extension->register($slice);
+
+        $this->assertTrue(true, "Registration from multiple directories should complete without errors");
+    }
+
+    #[Test]
+    public function it_skips_missing_directories_in_multi_path_registration(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+
+        $this->createSliceStructure($sliceName);
+
+        File::ensureDirectoryExists(base_path("src/{$sliceName}/src/Livewire"));
+
+        $slice = $this->createMockSlice($sliceName);
+
+        /* Act & Assert */
+        $extension = LivewireComponents::configure()
+            ->componentPath('livewire')
+            ->componentPath('nonexistent.path');
+
+        $extension->register($slice);
+
+        $this->assertTrue(true, "Should skip missing directories and continue registration");
+    }
+
     private function createMockSlice(string $sliceName): Slice
     {
         $slice = new Slice();
