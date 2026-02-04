@@ -333,6 +333,152 @@ final class LivewireComponentsTest extends TestCase
         $this->assertTrue(true, "Should skip missing directories and continue registration");
     }
 
+    #[Test]
+    public function component_path_default_sets_make_command_default(): void
+    {
+        $extension = (new LivewireComponents())
+            ->componentPathDefault('livewire');
+
+        $this->assertSame('livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function view_path_default_sets_make_command_default(): void
+    {
+        $extension = (new LivewireComponents())
+            ->viewPathDefault('custom-views');
+
+        $this->assertSame('custom-views', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function path_default_sets_both_defaults(): void
+    {
+        $extension = (new LivewireComponents())
+            ->pathDefault('shared.namespace');
+
+        $this->assertSame('shared.namespace', $extension->getComponentNamespace());
+        $this->assertSame('shared.namespace', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function component_path_default_takes_precedence_over_first_component_path(): void
+    {
+        $extension = (new LivewireComponents())
+            ->componentPath('filament.livewire')
+            ->componentPathDefault('livewire');
+
+        $this->assertSame('livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function view_path_default_takes_precedence_over_first_view_path(): void
+    {
+        $extension = (new LivewireComponents())
+            ->viewPath('filament.livewire')
+            ->viewPathDefault('livewire');
+
+        $this->assertSame('livewire', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function component_path_default_is_included_in_component_paths(): void
+    {
+        $extension = (new LivewireComponents())
+            ->componentPathDefault('livewire')
+            ->componentPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+    }
+
+    #[Test]
+    public function component_path_default_is_not_duplicated_when_also_registered(): void
+    {
+        $extension = (new LivewireComponents())
+            ->componentPathDefault('livewire')
+            ->componentPath('livewire')
+            ->componentPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+    }
+
+    #[Test]
+    public function view_path_default_is_included_in_view_paths(): void
+    {
+        $extension = (new LivewireComponents())
+            ->viewPathDefault('livewire')
+            ->viewPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+    }
+
+    #[Test]
+    public function view_path_default_is_not_duplicated_when_also_registered(): void
+    {
+        $extension = (new LivewireComponents())
+            ->viewPathDefault('livewire')
+            ->viewPath('livewire')
+            ->viewPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+    }
+
+    #[Test]
+    public function fallback_chain_resolves_to_first_registered_path_without_default(): void
+    {
+        $extension = (new LivewireComponents())
+            ->componentPath('ui.web.livewire')
+            ->componentPath('filament.livewire');
+
+        $this->assertSame('ui.web.livewire', $extension->getComponentNamespace());
+    }
+
+    #[Test]
+    public function fallback_chain_resolves_to_config_when_nothing_set(): void
+    {
+        $extension = new LivewireComponents();
+
+        $this->assertSame(config('livewire-slice.namespace', 'livewire'), $extension->getComponentNamespace());
+        $this->assertSame(config('livewire-slice.view-folder', 'livewire'), $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function path_default_registers_for_loading(): void
+    {
+        $extension = (new LivewireComponents())
+            ->pathDefault('livewire')
+            ->componentPath('filament.livewire')
+            ->viewPath('filament.livewire');
+
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getComponentPaths());
+        $this->assertSame(['livewire', 'filament.livewire'], $extension->getViewPaths());
+        $this->assertSame('livewire', $extension->getComponentNamespace());
+        $this->assertSame('livewire', $extension->getViewNamespace());
+    }
+
+    #[Test]
+    public function it_registers_from_default_and_additional_paths(): void
+    {
+        /* Arrange */
+        $sliceName = 'blog';
+
+        $this->createSliceStructure($sliceName);
+
+        File::ensureDirectoryExists(base_path("src/{$sliceName}/src/Livewire"));
+        File::ensureDirectoryExists(base_path("src/{$sliceName}/src/Filament/Livewire"));
+
+        $slice = $this->createMockSlice($sliceName);
+
+        /* Act & Assert */
+        $extension = (new LivewireComponents())
+            ->pathDefault('livewire')
+            ->componentPath('filament.livewire');
+
+        $extension->register($slice);
+
+        $this->assertTrue(true, "Registration from default and additional paths should complete without errors");
+    }
+
     private function createMockSlice(string $sliceName): Slice
     {
         $slice = new Slice();
