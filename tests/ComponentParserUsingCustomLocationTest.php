@@ -25,6 +25,7 @@ final class ComponentParserUsingCustomLocationTest extends TestCase
         string $rawComponentName = 'PostList',
         string $sliceName = 'blog',
         ?string $stubSubDirectory = null,
+        ?string $viewFolder = null,
     ): ComponentParserUsingCustomLocation
     {
         return new ComponentParserUsingCustomLocation(
@@ -36,6 +37,7 @@ final class ComponentParserUsingCustomLocationTest extends TestCase
             rawComponentName: $rawComponentName,
             sliceName: $sliceName,
             stubSubDirectory: $stubSubDirectory,
+            viewFolder: $viewFolder,
         );
     }
 
@@ -209,5 +211,53 @@ final class ComponentParserUsingCustomLocationTest extends TestCase
 
         /* Assert */
         $this->assertEquals('api.posts::livewire.create-post', $parser->viewName());
+    }
+
+    #[Test]
+    public function it_uses_custom_view_folder_when_provided(): void
+    {
+        /* Arrange */
+        config(['livewire-slice.view-folder' => 'livewire']);
+
+        /* Act */
+        $parser = $this->createParser(
+            rawComponentName: 'PostList',
+            sliceName: 'blog',
+            viewFolder: 'filament.livewire',
+        );
+
+        /* Assert */
+        $this->assertEquals('blog::filament.livewire.post-list', $parser->viewName());
+    }
+
+    #[Test]
+    public function it_falls_back_to_config_when_view_folder_is_null(): void
+    {
+        /* Arrange */
+        config(['livewire-slice.view-folder' => 'livewire']);
+
+        /* Act */
+        $parser = $this->createParser(
+            rawComponentName: 'PostList',
+            sliceName: 'blog',
+            viewFolder: null,
+        );
+
+        /* Assert */
+        $this->assertEquals('blog::livewire.post-list', $parser->viewName());
+    }
+
+    #[Test]
+    public function it_uses_custom_view_folder_for_nested_component(): void
+    {
+        /* Arrange & Act */
+        $parser = $this->createParser(
+            rawComponentName: 'Posts/CommentList',
+            sliceName: 'blog',
+            viewFolder: 'filament.livewire',
+        );
+
+        /* Assert */
+        $this->assertEquals('blog::filament.livewire.posts.comment-list', $parser->viewName());
     }
 }

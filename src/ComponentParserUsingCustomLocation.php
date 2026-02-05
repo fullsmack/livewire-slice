@@ -12,14 +12,12 @@ use Illuminate\Support\Collection;
  *
  * This class does NOT call the parent constructor to avoid the static generatePathFromNamespace
  * calls that would derive incorrect paths for custom slice namespaces.
- *
- * Future consideration for custom Livewire locations per slice:
- * - The Slice class could provide a `livewireConfig()` method returning custom namespace/path
- * - Or a slice-specific config could define 'livewire.namespace' and 'livewire.view-folder'
  */
 class ComponentParserUsingCustomLocation extends ComponentParser
 {
     protected string $sliceName;
+
+    protected ?string $viewFolder;
 
     public function __construct(
         string $classNamespace,
@@ -30,10 +28,12 @@ class ComponentParserUsingCustomLocation extends ComponentParser
         string $rawComponentName,
         string $sliceName,
         ?string $stubSubDirectory = null,
+        ?string $viewFolder = null,
     ) {
         // Do NOT call parent::__construct() - we set all properties explicitly
 
         $this->sliceName = $sliceName;
+        $this->viewFolder = $viewFolder;
 
         $this->baseClassNamespace = $classNamespace;
         $this->baseTestNamespace = $testNamespace;
@@ -64,7 +64,7 @@ class ComponentParserUsingCustomLocation extends ComponentParser
 
     public function viewName()
     {
-        $viewFolder = config('livewire-slice.view-folder');
+        $viewFolder = $this->viewFolder ?? config('livewire-slice.view-folder');
 
         return $this->sliceName . '::' . $viewFolder . '.' . Collection::make($this->directories)
             ->map(Str::kebab(...))

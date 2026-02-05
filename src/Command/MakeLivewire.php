@@ -16,7 +16,7 @@ class MakeLivewire extends MakeCommand
 {
     use SliceDefinitions;
 
-    protected $signature = 'livewire:make {name} {--force} {--inline} {--test} {--pest} {--slice=} {--stub=}';
+    protected $signature = 'livewire:make {name} {--force} {--inline} {--test} {--pest} {--slice=} {--stub=} {--component-path=} {--view-path=}';
 
     public function handle()
     {
@@ -54,6 +54,7 @@ class MakeLivewire extends MakeCommand
             rawComponentName: $this->argument('name'),
             sliceName: $this->sliceName,
             stubSubDirectory: $this->option('stub'),
+            viewFolder: $this->getViewFolder(),
         );
 
         return $this->parentCommandOutput();
@@ -124,9 +125,19 @@ class MakeLivewire extends MakeCommand
         return ! File::isDirectory($this->getLivewireClassPath());
     }
 
+    protected function getComponentNamespaceOption(): string
+    {
+        return $this->option('component-path') ?? config('livewire-slice.namespace', 'livewire');
+    }
+
+    protected function getViewFolder(): string
+    {
+        return $this->option('view-path') ?? config('livewire-slice.view-folder', 'livewire');
+    }
+
     protected function getLivewireNestedPath(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
+        return Str::of($this->getComponentNamespaceOption())
             ->explode('.')
             ->map(Str::studly(...))
             ->implode('/');
@@ -134,7 +145,7 @@ class MakeLivewire extends MakeCommand
 
     protected function getLivewireNestedNamespace(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
+        return Str::of($this->getComponentNamespaceOption())
             ->explode('.')
             ->map(Str::studly(...))
             ->implode('\\');
@@ -152,8 +163,9 @@ class MakeLivewire extends MakeCommand
 
     protected function getLivewireViewPath(): string
     {
-        $viewFolder = config('livewire-slice.view-folder', 'livewire');
-        return $this->slicePath('resources/views/' . $viewFolder);
+        $viewPath = str_replace('.', '/', $this->getViewFolder());
+
+        return $this->slicePath('resources/views/' . $viewPath);
     }
 
     protected function getLivewireTestPath(): string
