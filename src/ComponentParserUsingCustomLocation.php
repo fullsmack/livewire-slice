@@ -7,63 +7,67 @@ use Livewire\Features\SupportConsoleCommands\Commands\ComponentParser;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 
+/**
+ * Component parser that uses explicit slice paths instead of deriving from namespace.
+ *
+ * This class does NOT call the parent constructor to avoid the static generatePathFromNamespace
+ * calls that would derive incorrect paths for custom slice namespaces.
+ *
+ * Future consideration for custom Livewire locations per slice:
+ * - The Slice class could provide a `livewireConfig()` method returning custom namespace/path
+ * - Or a slice-specific config could define 'livewire.namespace' and 'livewire.view-folder'
+ */
 class ComponentParserUsingCustomLocation extends ComponentParser
 {
-    public static function generatePathFromNamespace($namespace)
-    {
-        $config = config('laravel-slice.root');
+    protected string $sliceName;
 
-        $parts = Str::of($namespace)->explode('\\');
+    public function __construct(
+        string $classNamespace,
+        string $classPath,
+        string $viewPath,
+        string $testPath,
+        string $testNamespace,
+        string $rawComponentName,
+        string $sliceName,
+        ?string $stubSubDirectory = null,
+    ) {
+        // Do NOT call parent::__construct() - we set all properties explicitly
 
-        $sliceRootFolder = Str::of($parts[0])
-            ->replace(Str::studly($config['namespace']), $config['folder']);
+        $this->sliceName = $sliceName;
 
-        $sliceName = Str::kebab($parts[1]);
+        $this->baseClassNamespace = $classNamespace;
+        $this->baseTestNamespace = $testNamespace;
 
-        $livewireFolder = Collection::make($parts)->skip(2)->implode('/');
+        $this->baseClassPath = rtrim($classPath, DIRECTORY_SEPARATOR) . '/';
+        $this->baseViewPath = rtrim($viewPath, DIRECTORY_SEPARATOR) . '/';
+        $this->baseTestPath = rtrim($testPath, DIRECTORY_SEPARATOR) . '/';
 
-        $path = base_path("{$sliceRootFolder}/{$sliceName}/src/{$livewireFolder}");
+        if (!empty($stubSubDirectory) && Str::of($stubSubDirectory)->startsWith('..'))
+        {
+            $this->stubDirectory = rtrim((string) Str::of($stubSubDirectory)->replaceFirst('..' . DIRECTORY_SEPARATOR, ''), DIRECTORY_SEPARATOR) . '/';
+        }
+        else
+        {
+            $this->stubDirectory = rtrim('stubs' . DIRECTORY_SEPARATOR . ($stubSubDirectory ?? ''), DIRECTORY_SEPARATOR) . '/';
+        }
 
-        return $path;
-    }
+        $directories = preg_split('/[.\/(\\\\)]+/', $rawComponentName);
 
-    public static function generateTestPathFromNamespace($namespace)
-    {
-        $rootFolder = config('laravel-slice.root.folder');
+        $camelCase = Str::of(array_pop($directories))->camel();
+        $kebabCase = Str::of($camelCase)->kebab();
 
-        $testNamespace = config('laravel-slice.test.namespace');
+        $this->component = $kebabCase;
+        $this->componentClass = Str::of($this->component)->studly();
 
-        $parts = Str::of($namespace)->explode('\\');
-
-        $sliceRootFolder = Str::of($parts[0])
-            ->replace(Str::studly($testNamespace), $rootFolder);
-
-        $sliceName = Str::kebab($parts[1]);
-
-        return base_path("{$sliceRootFolder}/{$sliceName}/tests");
+        $this->directories = array_map(Str::studly(...), $directories);
     }
 
     public function viewName()
     {
-        $sliceRootFolder = config('laravel-slice.root.folder');
+        $viewFolder = config('livewire-slice.view-folder');
 
-        $sliceName = Str::of($this->baseViewPath)
-            ->before('/resources/views')
-            ->replace("{$sliceRootFolder}/", '');
-
-        return $sliceName .'::'. Collection::make()
-            ->when(
-                config('livewire.view_path') !== resource_path(),
-                function ($collection) {
-                    return $collection->concat(
-                        Str::of($this->baseViewPath)
-                            ->after('/resources/views')->explode('/')
-                    );
-                }
-            )
-            ->filter()
-            ->concat($this->directories)
-            ->map([Str::class, 'kebab'])
+        return $this->sliceName . '::' . $viewFolder . '.' . Collection::make($this->directories)
+            ->map(Str::kebab(...))
             ->push($this->component)
             ->implode('.');
     }

@@ -3,39 +3,40 @@ declare(strict_types=1);
 
 namespace FullSmack\LivewireSlice;
 
+use ReflectionClass;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Illuminate\Support\Stringable;
 use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Finder\SplFileInfo;
-use ReflectionClass;
-use Livewire\Component;
 use Livewire\Livewire;
+use Livewire\Component;
 
 use FullSmack\LaravelSlice\Slice;
-use FullSmack\LaravelSlice\Feature;
+use FullSmack\LaravelSlice\Extension;
 
-class LivewireComponents implements Feature
+class LivewireComponents implements Extension
 {
     private string $componentNamespace = 'livewire';
 
     public function register(Slice $slice): void
     {
-        $moduleSourcePath = $slice->basePath();
-        $moduleName = $slice->name();
+        $sliceSourcePath = $slice->sourcePath();
+
+        $sliceName = $slice->name();
+
         $livewireNamespace = Str::of($this->componentNamespace)
             ->explode('.')
-            ->map(fn($string) => ucfirst($string))
+            ->map(static fn($string): string => ucfirst($string))
             ->implode('\\');
 
-        $namespace = $slice->baseNamespace($livewireNamespace);
+        $namespace = $slice->namespace($livewireNamespace);
 
-        $livewireNestedSourcePath ??= (fn(): Stringable => Str::of($livewireNamespace)
-            // ->lower()
-            ->after($moduleName.'\\')
-            ->replace('\\', '/'))();
+        $livewirePath = Str::of($this->componentNamespace)
+            ->explode('.')
+            ->map(Str::studly(...))
+            ->implode('/');
 
-        $directory = $moduleSourcePath .DIRECTORY_SEPARATOR. $livewireNestedSourcePath;
+        $directory = $sliceSourcePath .DIRECTORY_SEPARATOR. $livewirePath;
 
         $filesystem = app(Filesystem::class);
 
@@ -51,10 +52,10 @@ class LivewireComponents implements Feature
                     ->replace(['/', '.php'], ['\\', '']);
             })
             ->filter(fn (string $class): bool => (
-                is_subclass_of($class, Component::class) &&
-                (! (new ReflectionClass($class))->isAbstract()))
-            )
-            ->each(function (string $class) use ($namespace, $moduleName): void {
+                is_subclass_of($class, Component::class)
+                && (! (new ReflectionClass($class))->isAbstract())
+            ))
+            ->each(function (string $class) use ($namespace, $sliceName): void {
                 $alias = Str::of($class)
                     ->after($namespace . '\\')
                     ->replace(['/', '\\'], '.')
@@ -62,7 +63,7 @@ class LivewireComponents implements Feature
                     ->map(Str::kebab(...))
                     ->implode('.');
 
-                Livewire::component($moduleName.'::'.$alias, $class);
+                Livewire::component($sliceName.'::'.$alias, $class);
             });
     }
 }

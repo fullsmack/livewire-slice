@@ -6,12 +6,10 @@ namespace FullSmack\LivewireSlice;
 use Illuminate\Support\ServiceProvider;
 
 use FullSmack\LivewireSlice\Command\MakeLivewire;
+use FullSmack\LivewireSlice\Command\MakeLivewireV4;
 
 class LivewireSliceServiceProvider extends ServiceProvider
 {
-    protected $commands = [
-        MakeLivewire::class,
-    ];
 
     /**
      * Bootstrap any application services.
@@ -57,7 +55,13 @@ class LivewireSliceServiceProvider extends ServiceProvider
     {
         if($this->app->runningInConsole())
         {
-            $this->commands($this->commands);
+            // Livewire v4 introduced the Finder class and rewrote MakeCommand.
+            // Use the appropriate command implementation based on the installed version.
+            $command = class_exists(\Livewire\Finder\Finder::class)
+                ? MakeLivewireV4::class
+                : MakeLivewire::class;
+
+            $this->commands([$command]);
         }
     }
 }
