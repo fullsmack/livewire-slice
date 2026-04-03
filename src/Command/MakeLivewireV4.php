@@ -5,15 +5,17 @@ namespace FullSmack\LivewireSlice\Command;
 
 use Illuminate\Console\Command;
 use Livewire\Features\SupportConsoleCommands\Commands\MakeCommand;
-use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputOption;
 
 use FullSmack\LaravelSlice\Command\SliceDefinitions;
 use FullSmack\LaravelSlice\SliceNotRegistered;
+use FullSmack\LivewireSlice\LivewireComponentLocator;
 
 class MakeLivewireV4 extends MakeCommand
 {
     use SliceDefinitions;
+
+    private ?LivewireComponentLocator $locator = null;
 
     protected $name = 'livewire:make';
 
@@ -50,13 +52,20 @@ class MakeLivewireV4 extends MakeCommand
         return parent::handle();
     }
 
+    protected function getOptions()
+    {
+        return array_merge(parent::getOptions(), [
+            ['slice', null, InputOption::VALUE_REQUIRED, 'The slice to create the component in'],
+        ]);
+    }
+
     protected function registerSliceWithFinder(): void
     {
         $classNamespace = $this->getLivewireNamespace();
         $classPath = $this->getLivewireClassPath();
         $viewPath = $this->getLivewireViewPath();
 
-        $this->finder->addNamespace(
+        app('livewire.finder')->addNamespace(
             $this->sliceName,
             viewPath: $viewPath,
             classNamespace: $classNamespace,
@@ -67,40 +76,31 @@ class MakeLivewireV4 extends MakeCommand
 
     protected function getLivewireNestedPath(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...))
-            ->implode('/');
+        return $this->locator()->relativeClassPath();
     }
 
     protected function getLivewireNestedNamespace(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...))
-            ->implode('\\');
+        return $this->locator()->relativeClassNamespace();
     }
 
     protected function getLivewireClassPath(): string
     {
-        return $this->sliceSourcePath($this->getLivewireNestedPath());
+        return $this->locator()->classPathFromSliceSourcePath($this->sliceSourcePath());
     }
 
     protected function getLivewireNamespace(): string
     {
-        return $this->sliceNamespace() . '\\' . $this->getLivewireNestedNamespace();
+        return $this->locator()->classNamespaceFromSliceNamespace($this->sliceNamespace());
     }
 
     protected function getLivewireViewPath(): string
     {
-        $viewFolder = config('livewire-slice.view-folder', 'livewire');
-        return $this->slicePath('resources/views/' . $viewFolder);
+        return $this->locator()->viewPathFromSlicePath($this->slicePath());
     }
 
-    protected function getOptions()
+    private function locator(): LivewireComponentLocator
     {
-        return array_merge(parent::getOptions(), [
-            ['slice', null, InputOption::VALUE_REQUIRED, 'The slice to create the component in'],
-        ]);
+        return $this->locator ??= app(LivewireComponentLocator::class);
     }
 }

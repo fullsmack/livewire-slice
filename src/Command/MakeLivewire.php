@@ -6,15 +6,17 @@ namespace FullSmack\LivewireSlice\Command;
 use Illuminate\Console\Command;
 use Livewire\Features\SupportConsoleCommands\Commands\MakeCommand;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 
 use FullSmack\LaravelSlice\Command\SliceDefinitions;
 use FullSmack\LaravelSlice\SliceNotRegistered;
 use FullSmack\LivewireSlice\ComponentParserUsingCustomLocation;
+use FullSmack\LivewireSlice\LivewireComponentLocator;
 
 class MakeLivewire extends MakeCommand
 {
     use SliceDefinitions;
+
+    private ?LivewireComponentLocator $locator = null;
 
     protected $signature = 'livewire:make {name} {--force} {--inline} {--test} {--pest} {--slice=} {--stub=}';
 
@@ -126,43 +128,41 @@ class MakeLivewire extends MakeCommand
 
     protected function getLivewireNestedPath(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...))
-            ->implode('/');
+        return $this->locator()->relativeClassPath();
     }
 
     protected function getLivewireNestedNamespace(): string
     {
-        return Str::of(config('livewire-slice.namespace', 'livewire'))
-            ->explode('.')
-            ->map(Str::studly(...))
-            ->implode('\\');
+        return $this->locator()->relativeClassNamespace();
     }
 
     protected function getLivewireClassPath(): string
     {
-        return $this->sliceSourcePath($this->getLivewireNestedPath());
+        return $this->locator()->classPathFromSliceSourcePath($this->sliceSourcePath());
     }
 
     protected function getLivewireNamespace(): string
     {
-        return $this->sliceNamespace() . '\\' . $this->getLivewireNestedNamespace();
+        return $this->locator()->classNamespaceFromSliceNamespace($this->sliceNamespace());
     }
 
     protected function getLivewireViewPath(): string
     {
-        $viewFolder = config('livewire-slice.view-folder', 'livewire');
-        return $this->slicePath('resources/views/' . $viewFolder);
+        return $this->locator()->viewPathFromSlicePath($this->slicePath());
     }
 
     protected function getLivewireTestPath(): string
     {
-        return $this->slicePath('tests/Livewire');
+        return $this->locator()->testPathFromSlicePath($this->slicePath());
     }
 
     protected function getLivewireTestNamespace(): string
     {
-        return $this->sliceTestNamespace('Livewire');
+        return $this->locator()->testNamespaceFromSliceTestNamespace($this->sliceTestNamespace());
+    }
+
+    private function locator(): LivewireComponentLocator
+    {
+        return $this->locator ??= app(LivewireComponentLocator::class);
     }
 }

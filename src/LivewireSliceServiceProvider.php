@@ -18,6 +18,8 @@ class LivewireSliceServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $this->registerMissingComponentResolver();
+
         $this->registerConfig();
 
         $this->publishesConfig();
@@ -32,7 +34,8 @@ class LivewireSliceServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(\FullSmack\LivewireSlice\LivewireComponentLocator::class);
+        $this->app->singleton(\FullSmack\LivewireSlice\LivewireSliceRegistry::class);
     }
 
     protected function registerConfig()
@@ -57,11 +60,23 @@ class LivewireSliceServiceProvider extends ServiceProvider
         {
             // Livewire v4 introduced the Finder class and rewrote MakeCommand.
             // Use the appropriate command implementation based on the installed version.
-            $command = class_exists(\Livewire\Finder\Finder::class)
+            $command = class_exists('Livewire\\Finder\\Finder')
                 ? MakeLivewireV4::class
                 : MakeLivewire::class;
 
             $this->commands([$command]);
         }
+    }
+
+    protected function registerMissingComponentResolver(): void
+    {
+        if (! $this->app->bound('livewire'))
+        {
+            return;
+        }
+
+        $this->app['livewire']->resolveMissingComponent(
+            $this->app->make(\FullSmack\LivewireSlice\LivewireSliceRegistry::class)
+        );
     }
 }

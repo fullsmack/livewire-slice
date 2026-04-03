@@ -6,6 +6,7 @@ namespace FullSmack\LivewireSlice;
 use Livewire\Features\SupportConsoleCommands\Commands\ComponentParser;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
+use FullSmack\LivewireSlice\LivewireComponentLocator;
 
 /**
  * Component parser that uses explicit slice paths instead of deriving from namespace.
@@ -64,11 +65,12 @@ class ComponentParserUsingCustomLocation extends ComponentParser
 
     public function viewName()
     {
-        $viewFolder = config('livewire-slice.view-folder');
-
-        return $this->sliceName . '::' . $viewFolder . '.' . Collection::make($this->directories)
+        $viewName = Collection::make($this->directories)
             ->map(Str::kebab(...))
             ->push($this->component)
             ->implode('.');
+
+        return app(LivewireComponentLocator::class)
+            ->viewName($this->sliceName, $viewName);
     }
 }
